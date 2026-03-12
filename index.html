@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Juego de Cubos con Obstáculos y Partículas</title>
+<title>Juego de Cubos con Obstáculos Seguros</title>
 <style>
   body {
     margin: 0;
@@ -98,17 +98,33 @@ let redPos = {x: 700, y: 500};
 let keys = {};
 let gamePaused = false;
 let obstacles = [];
+const minDistance = 100; // distancia mínima de seguridad
 
-// Crear obstáculos aleatorios
-const obstacleCount = 8;
-for(let i=0;i<obstacleCount;i++){
+// Función para generar obstáculos seguros
+function generateObstacle(){
+  let x, y;
+  let safe = false;
+  while(!safe){
+    x = Math.random() * (gameArea.clientWidth - 40);
+    y = Math.random() * (gameArea.clientHeight - 40);
+    const dxBlue = x - bluePos.x;
+    const dyBlue = y - bluePos.y;
+    const dxRed = x - redPos.x;
+    const dyRed = y - redPos.y;
+    safe = Math.abs(dxBlue) > minDistance || Math.abs(dyBlue) > minDistance;
+    safe = safe && (Math.abs(dxRed) > minDistance || Math.abs(dyRed) > minDistance);
+  }
   const obs = document.createElement('div');
   obs.classList.add('obstacle');
-  obs.style.left = Math.random() * (gameArea.clientWidth - 40) + 'px';
-  obs.style.top = Math.random() * (gameArea.clientHeight - 40) + 'px';
+  obs.style.left = x + 'px';
+  obs.style.top = y + 'px';
   gameArea.appendChild(obs);
   obstacles.push(obs);
 }
+
+// Crear varios obstáculos
+const obstacleCount = 8;
+for(let i=0;i<obstacleCount;i++) generateObstacle();
 
 document.addEventListener('keydown', e => keys[e.key]=true);
 document.addEventListener('keyup', e => keys[e.key]=false);
@@ -164,7 +180,6 @@ function isColliding(a,b){
   return !(a.x + cubeSize < b.x || a.x > b.x + (b.width||40) || a.y + cubeSize < b.y || a.y > b.y + (b.height||40));
 }
 
-// Crear partículas detrás de los cubos
 function createParticles(){
   [bluePos, redPos].forEach((pos, i)=>{
     const particle = document.createElement('div');
@@ -172,13 +187,19 @@ function createParticles(){
     particle.style.left = (pos.x + Math.random()*cubeSize) + 'px';
     particle.style.top = (pos.y + Math.random()*cubeSize) + 'px';
     gameArea.appendChild(particle);
-    setTimeout(()=>particle.remove(), 300); // desaparecer rápido
+    setTimeout(()=>particle.remove(), 300);
   });
 }
 
 restartBtn.addEventListener('click', ()=>{
   bluePos={x:50,y:50}; redPos={x:700,y:500};
   keys={}; gamePaused=false;
+
+  // Eliminar obstáculos viejos y generar nuevos
+  obstacles.forEach(o=>o.remove());
+  obstacles = [];
+  for(let i=0;i<obstacleCount;i++) generateObstacle();
+
   gameOverScreen.style.display='none';
 });
 
