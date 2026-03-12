@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Juego de Cubos</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #f0f0f0;
+    font-family: sans-serif;
+  }
+
+  #gameArea {
+    position: relative;
+    width: 800px;
+    height: 600px;
+    margin: 50px auto;
+    background-color: #ddd;
+    border: 2px solid #333;
+  }
+
+  .player {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+  }
+
+  #playerBlue {
+    background-color: blue;
+    left: 50px;
+    top: 50px;
+  }
+
+  #playerRed {
+    background-color: red;
+    left: 700px;
+    top: 500px;
+  }
+
+  #gameOverScreen {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0; left: 0;
+    background-color: rgba(0,0,0,0.8);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    display: none;
+  }
+
+  #restartBtn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 24px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div id="gameArea">
+  <div id="playerBlue" class="player"></div>
+  <div id="playerRed" class="player"></div>
+  <div id="gameOverScreen">
+    Game Over
+    <button id="restartBtn">Restart</button>
+  </div>
+</div>
+
+<script>
+  const blue = document.getElementById("playerBlue");
+  const red = document.getElementById("playerRed");
+  const gameOverScreen = document.getElementById("gameOverScreen");
+  const restartBtn = document.getElementById("restartBtn");
+  const gameArea = document.getElementById("gameArea");
+
+  const blueSpeed = 5;
+  const redSpeed = 5;
+
+  let bluePos = {x: 50, y: 50};
+  let redPos = {x: 700, y: 500};
+  let keys = {};
+
+  // Escuchar teclas presionadas
+  document.addEventListener('keydown', (e) => { keys[e.key] = true; });
+  document.addEventListener('keyup', (e) => { keys[e.key] = false; });
+
+  function movePlayer() {
+    // Jugador azul: WASD
+    if(keys['w']) bluePos.y -= blueSpeed;
+    if(keys['s']) bluePos.y += blueSpeed;
+    if(keys['a']) bluePos.x -= blueSpeed;
+    if(keys['d']) bluePos.x += blueSpeed;
+
+    // Jugador rojo: Flechas
+    if(keys['ArrowUp']) redPos.y -= redSpeed;
+    if(keys['ArrowDown']) redPos.y += redSpeed;
+    if(keys['ArrowLeft']) redPos.x -= redSpeed;
+    if(keys['ArrowRight']) redPos.x += redSpeed;
+
+    // Mantener dentro del área
+    bluePos.x = Math.max(0, Math.min(bluePos.x, gameArea.clientWidth - 50));
+    bluePos.y = Math.max(0, Math.min(bluePos.y, gameArea.clientHeight - 50));
+    redPos.x = Math.max(0, Math.min(redPos.x, gameArea.clientWidth - 50));
+    redPos.y = Math.max(0, Math.min(redPos.y, gameArea.clientHeight - 50));
+
+    // Actualizar posiciones
+    blue.style.left = bluePos.x + 'px';
+    blue.style.top = bluePos.y + 'px';
+    red.style.left = redPos.x + 'px';
+    red.style.top = redPos.y + 'px';
+
+    // Revisar colisión
+    if(isColliding(bluePos, redPos)) {
+      gameOverScreen.style.display = 'flex';
+    }
+
+    requestAnimationFrame(movePlayer);
+  }
+
+  function isColliding(a, b) {
+    return !(a.x + 50 < b.x || a.x > b.x + 50 || a.y + 50 < b.y || a.y > b.y + 50);
+  }
+
+  restartBtn.addEventListener('click', () => {
+    // Reiniciar posiciones
+    bluePos = {x: 50, y: 50};
+    redPos = {x: 700, y: 500};
+    keys = {};
+    gameOverScreen.style.display = 'none';
+  });
+
+  movePlayer(); // iniciar el bucle
+</script>
+
+</body>
+</html>
