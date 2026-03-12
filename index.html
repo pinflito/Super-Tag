@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Juego de Cubos</title>
+<title>Juego de Cubos Mejorado</title>
 <style>
   body {
     margin: 0;
@@ -22,8 +22,9 @@
 
   .player {
     position: absolute;
-    width: 50px;
-    height: 50px;
+    width: 30px;           /* Cubos más pequeños */
+    height: 30px;
+    border-radius: 10px;   /* Bordes redondeados */
   }
 
   #playerBlue {
@@ -79,64 +80,72 @@
   const restartBtn = document.getElementById("restartBtn");
   const gameArea = document.getElementById("gameArea");
 
+  const cubeSize = 30;    // Nuevo tamaño de los cubos
   const blueSpeed = 5;
   const redSpeed = 5;
 
   let bluePos = {x: 50, y: 50};
   let redPos = {x: 700, y: 500};
   let keys = {};
+  let gamePaused = false; // Para pausar el movimiento
 
-  // Escuchar teclas presionadas
   document.addEventListener('keydown', (e) => { keys[e.key] = true; });
   document.addEventListener('keyup', (e) => { keys[e.key] = false; });
 
   function movePlayer() {
-    // Jugador azul: WASD
-    if(keys['w']) bluePos.y -= blueSpeed;
-    if(keys['s']) bluePos.y += blueSpeed;
-    if(keys['a']) bluePos.x -= blueSpeed;
-    if(keys['d']) bluePos.x += blueSpeed;
+    if (!gamePaused) {
+      // Jugador azul: WASD
+      if(keys['w']) bluePos.y -= blueSpeed;
+      if(keys['s']) bluePos.y += blueSpeed;
+      if(keys['a']) bluePos.x -= blueSpeed;
+      if(keys['d']) bluePos.x += blueSpeed;
 
-    // Jugador rojo: Flechas
-    if(keys['ArrowUp']) redPos.y -= redSpeed;
-    if(keys['ArrowDown']) redPos.y += redSpeed;
-    if(keys['ArrowLeft']) redPos.x -= redSpeed;
-    if(keys['ArrowRight']) redPos.x += redSpeed;
+      // Jugador rojo: Flechas
+      if(keys['ArrowUp']) redPos.y -= redSpeed;
+      if(keys['ArrowDown']) redPos.y += redSpeed;
+      if(keys['ArrowLeft']) redPos.x -= redSpeed;
+      if(keys['ArrowRight']) redPos.x += redSpeed;
 
-    // Mantener dentro del área
-    bluePos.x = Math.max(0, Math.min(bluePos.x, gameArea.clientWidth - 50));
-    bluePos.y = Math.max(0, Math.min(bluePos.y, gameArea.clientHeight - 50));
-    redPos.x = Math.max(0, Math.min(redPos.x, gameArea.clientWidth - 50));
-    redPos.y = Math.max(0, Math.min(redPos.y, gameArea.clientHeight - 50));
+      // Mantener dentro del área
+      bluePos.x = Math.max(0, Math.min(bluePos.x, gameArea.clientWidth - cubeSize));
+      bluePos.y = Math.max(0, Math.min(bluePos.y, gameArea.clientHeight - cubeSize));
+      redPos.x = Math.max(0, Math.min(redPos.x, gameArea.clientWidth - cubeSize));
+      redPos.y = Math.max(0, Math.min(redPos.y, gameArea.clientHeight - cubeSize));
 
-    // Actualizar posiciones
-    blue.style.left = bluePos.x + 'px';
-    blue.style.top = bluePos.y + 'px';
-    red.style.left = redPos.x + 'px';
-    red.style.top = redPos.y + 'px';
+      // Actualizar posiciones
+      blue.style.left = bluePos.x + 'px';
+      blue.style.top = bluePos.y + 'px';
+      red.style.left = redPos.x + 'px';
+      red.style.top = redPos.y + 'px';
 
-    // Revisar colisión
-    if(isColliding(bluePos, redPos)) {
-      gameOverScreen.style.display = 'flex';
+      // Revisar colisión
+      if(isColliding(bluePos, redPos)) {
+        gamePaused = true;
+        gameOverScreen.style.display = 'flex';
+      }
     }
 
     requestAnimationFrame(movePlayer);
   }
 
   function isColliding(a, b) {
-    return !(a.x + 50 < b.x || a.x > b.x + 50 || a.y + 50 < b.y || a.y > b.y + 50);
+    return !(a.x + cubeSize < b.x || a.x > b.x + cubeSize || a.y + cubeSize < b.y || a.y > b.y + cubeSize);
   }
 
   restartBtn.addEventListener('click', () => {
-    // Reiniciar posiciones
+    // Reiniciar posiciones y estado
     bluePos = {x: 50, y: 50};
     redPos = {x: 700, y: 500};
     keys = {};
+    gamePaused = false;
     gameOverScreen.style.display = 'none';
   });
 
   movePlayer(); // iniciar el bucle
 </script>
+
+</body>
+</html>
 
 </body>
 </html>
