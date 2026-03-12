@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Juego de Cubos Mejorado</title>
+<title>Juego de Cubos con Obstáculos y Partículas</title>
 <style>
   body {
     margin: 0;
@@ -18,25 +18,35 @@
     margin: 50px auto;
     background-color: #ddd;
     border: 2px solid #333;
+    overflow: hidden;
   }
 
   .player {
     position: absolute;
-    width: 30px;           /* Cubos más pequeños */
+    width: 30px;
     height: 30px;
-    border-radius: 10px;   /* Bordes redondeados */
+    border-radius: 10px;
   }
 
-  #playerBlue {
-    background-color: blue;
-    left: 50px;
-    top: 50px;
+  #playerBlue { background-color: blue; left:50px; top:50px; }
+  #playerRed { background-color: red; left:700px; top:500px; }
+
+  .obstacle {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background-color: #555;
+    border-radius: 5px;
   }
 
-  #playerRed {
-    background-color: red;
-    left: 700px;
-    top: 500px;
+  .particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background-color: #fff;
+    opacity: 0.8;
+    border-radius: 50%;
+    pointer-events: none;
   }
 
   #gameOverScreen {
@@ -74,78 +84,106 @@
 </div>
 
 <script>
-  const blue = document.getElementById("playerBlue");
-  const red = document.getElementById("playerRed");
-  const gameOverScreen = document.getElementById("gameOverScreen");
-  const restartBtn = document.getElementById("restartBtn");
-  const gameArea = document.getElementById("gameArea");
+const gameArea = document.getElementById("gameArea");
+const blue = document.getElementById("playerBlue");
+const red = document.getElementById("playerRed");
+const gameOverScreen = document.getElementById("gameOverScreen");
+const restartBtn = document.getElementById("restartBtn");
 
-  const cubeSize = 30;    // Nuevo tamaño de los cubos
-  const blueSpeed = 5;
-  const redSpeed = 5;
+const cubeSize = 30;
+const blueSpeed = 5;
+const redSpeed = 5;
+let bluePos = {x: 50, y: 50};
+let redPos = {x: 700, y: 500};
+let keys = {};
+let gamePaused = false;
+let obstacles = [];
 
-  let bluePos = {x: 50, y: 50};
-  let redPos = {x: 700, y: 500};
-  let keys = {};
-  let gamePaused = false; // Para pausar el movimiento
+// Crear obstáculos aleatorios
+const obstacleCount = 8;
+for(let i=0;i<obstacleCount;i++){
+  const obs = document.createElement('div');
+  obs.classList.add('obstacle');
+  obs.style.left = Math.random() * (gameArea.clientWidth - 40) + 'px';
+  obs.style.top = Math.random() * (gameArea.clientHeight - 40) + 'px';
+  gameArea.appendChild(obs);
+  obstacles.push(obs);
+}
 
-  document.addEventListener('keydown', (e) => { keys[e.key] = true; });
-  document.addEventListener('keyup', (e) => { keys[e.key] = false; });
+document.addEventListener('keydown', e => keys[e.key]=true);
+document.addEventListener('keyup', e => keys[e.key]=false);
 
-  function movePlayer() {
-    if (!gamePaused) {
-      // Jugador azul: WASD
-      if(keys['w']) bluePos.y -= blueSpeed;
-      if(keys['s']) bluePos.y += blueSpeed;
-      if(keys['a']) bluePos.x -= blueSpeed;
-      if(keys['d']) bluePos.x += blueSpeed;
+function movePlayer(){
+  if(!gamePaused){
+    let moved = false;
 
-      // Jugador rojo: Flechas
-      if(keys['ArrowUp']) redPos.y -= redSpeed;
-      if(keys['ArrowDown']) redPos.y += redSpeed;
-      if(keys['ArrowLeft']) redPos.x -= redSpeed;
-      if(keys['ArrowRight']) redPos.x += redSpeed;
+    // Azul (WASD)
+    if(keys['w']) {bluePos.y -= blueSpeed; moved=true;}
+    if(keys['s']) {bluePos.y += blueSpeed; moved=true;}
+    if(keys['a']) {bluePos.x -= blueSpeed; moved=true;}
+    if(keys['d']) {bluePos.x += blueSpeed; moved=true;}
 
-      // Mantener dentro del área
-      bluePos.x = Math.max(0, Math.min(bluePos.x, gameArea.clientWidth - cubeSize));
-      bluePos.y = Math.max(0, Math.min(bluePos.y, gameArea.clientHeight - cubeSize));
-      redPos.x = Math.max(0, Math.min(redPos.x, gameArea.clientWidth - cubeSize));
-      redPos.y = Math.max(0, Math.min(redPos.y, gameArea.clientHeight - cubeSize));
+    // Rojo (Flechas)
+    if(keys['ArrowUp']) {redPos.y -= redSpeed; moved=true;}
+    if(keys['ArrowDown']) {redPos.y += redSpeed; moved=true;}
+    if(keys['ArrowLeft']) {redPos.x -= redSpeed; moved=true;}
+    if(keys['ArrowRight']) {redPos.x += redSpeed; moved=true;}
 
-      // Actualizar posiciones
-      blue.style.left = bluePos.x + 'px';
-      blue.style.top = bluePos.y + 'px';
-      red.style.left = redPos.x + 'px';
-      red.style.top = redPos.y + 'px';
+    // Mantener dentro del área
+    bluePos.x = Math.max(0, Math.min(bluePos.x, gameArea.clientWidth - cubeSize));
+    bluePos.y = Math.max(0, Math.min(bluePos.y, gameArea.clientHeight - cubeSize));
+    redPos.x = Math.max(0, Math.min(redPos.x, gameArea.clientWidth - cubeSize));
+    redPos.y = Math.max(0, Math.min(redPos.y, gameArea.clientHeight - cubeSize));
 
-      // Revisar colisión
-      if(isColliding(bluePos, redPos)) {
-        gamePaused = true;
-        gameOverScreen.style.display = 'flex';
+    // Actualizar posiciones
+    blue.style.left = bluePos.x + 'px';
+    blue.style.top = bluePos.y + 'px';
+    red.style.left = redPos.x + 'px';
+    red.style.top = redPos.y + 'px';
+
+    // Colisión entre jugadores
+    if(isColliding(bluePos, redPos)){ gamePaused=true; gameOverScreen.style.display='flex'; }
+
+    // Colisión con obstáculos
+    for(const obs of obstacles){
+      const obsPos = {x: parseFloat(obs.style.left), y: parseFloat(obs.style.top)};
+      if(isColliding(bluePos, obsPos) || isColliding(redPos, obsPos)){
+        // Retroceder si choca
+        if(isColliding(bluePos, obsPos)) {bluePos.x -= keys['a']?-blueSpeed: keys['d']?blueSpeed:0; bluePos.y -= keys['w']?-blueSpeed: keys['s']?blueSpeed:0;}
+        if(isColliding(redPos, obsPos)) {redPos.x -= keys['ArrowLeft']?-redSpeed: keys['ArrowRight']?redSpeed:0; redPos.y -= keys['ArrowUp']?-redSpeed: keys['ArrowDown']?redSpeed:0;}
       }
     }
 
-    requestAnimationFrame(movePlayer);
+    // Crear partículas si se movió
+    if(moved) createParticles();
   }
+  requestAnimationFrame(movePlayer);
+}
 
-  function isColliding(a, b) {
-    return !(a.x + cubeSize < b.x || a.x > b.x + cubeSize || a.y + cubeSize < b.y || a.y > b.y + cubeSize);
-  }
+function isColliding(a,b){
+  return !(a.x + cubeSize < b.x || a.x > b.x + (b.width||40) || a.y + cubeSize < b.y || a.y > b.y + (b.height||40));
+}
 
-  restartBtn.addEventListener('click', () => {
-    // Reiniciar posiciones y estado
-    bluePos = {x: 50, y: 50};
-    redPos = {x: 700, y: 500};
-    keys = {};
-    gamePaused = false;
-    gameOverScreen.style.display = 'none';
+// Crear partículas detrás de los cubos
+function createParticles(){
+  [bluePos, redPos].forEach((pos, i)=>{
+    const particle = document.createElement('div');
+    particle.classList.add('particle');
+    particle.style.left = (pos.x + Math.random()*cubeSize) + 'px';
+    particle.style.top = (pos.y + Math.random()*cubeSize) + 'px';
+    gameArea.appendChild(particle);
+    setTimeout(()=>particle.remove(), 300); // desaparecer rápido
   });
+}
 
-  movePlayer(); // iniciar el bucle
+restartBtn.addEventListener('click', ()=>{
+  bluePos={x:50,y:50}; redPos={x:700,y:500};
+  keys={}; gamePaused=false;
+  gameOverScreen.style.display='none';
+});
+
+movePlayer();
 </script>
-
-</body>
-</html>
 
 </body>
 </html>
