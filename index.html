@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Juego de Cubos con Obstáculos Seguros</title>
+<title>Juego de Cubos con Puntos</title>
 <style>
   body {
     margin: 0;
@@ -49,6 +49,16 @@
     pointer-events: none;
   }
 
+  #scoreBoard {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 24px;
+    font-weight: bold;
+    z-index: 1000;
+  }
+
   #gameOverScreen {
     position: absolute;
     width: 100%;
@@ -62,6 +72,7 @@
     justify-content: center;
     font-size: 48px;
     display: none;
+    text-align: center;
   }
 
   #restartBtn {
@@ -75,6 +86,7 @@
 <body>
 
 <div id="gameArea">
+  <div id="scoreBoard">Azul: 0 | Rojo: 0</div>
   <div id="playerBlue" class="player"></div>
   <div id="playerRed" class="player"></div>
   <div id="gameOverScreen">
@@ -89,41 +101,49 @@ const blue = document.getElementById("playerBlue");
 const red = document.getElementById("playerRed");
 const gameOverScreen = document.getElementById("gameOverScreen");
 const restartBtn = document.getElementById("restartBtn");
+const scoreBoard = document.getElementById("scoreBoard");
 
 const cubeSize = 30;
 const blueSpeed = 5;
 const redSpeed = 5;
-let bluePos = {x: 50, y: 50};
-let redPos = {x: 700, y: 500};
+let bluePos = {x:50,y:50};
+let redPos = {x:700,y:500};
 let keys = {};
 let gamePaused = false;
 let obstacles = [];
-const minDistance = 100; // distancia mínima de seguridad
+const minDistance = 100;
+const obstacleCount = 8;
+
+// Sistema de puntos
+let score = { blue: 0, red: 0 };
+const maxScore = 3;
+
+function updateScore(){
+  scoreBoard.textContent = `Azul: ${score.blue} | Rojo: ${score.red}`;
+}
 
 // Función para generar obstáculos seguros
 function generateObstacle(){
-  let x, y;
-  let safe = false;
+  let x, y, safe=false;
   while(!safe){
-    x = Math.random() * (gameArea.clientWidth - 40);
-    y = Math.random() * (gameArea.clientHeight - 40);
+    x = Math.random()*(gameArea.clientWidth-40);
+    y = Math.random()*(gameArea.clientHeight-40);
     const dxBlue = x - bluePos.x;
     const dyBlue = y - bluePos.y;
     const dxRed = x - redPos.x;
     const dyRed = y - redPos.y;
-    safe = Math.abs(dxBlue) > minDistance || Math.abs(dyBlue) > minDistance;
-    safe = safe && (Math.abs(dxRed) > minDistance || Math.abs(dyRed) > minDistance);
+    safe = Math.abs(dxBlue)>minDistance || Math.abs(dyBlue)>minDistance;
+    safe = safe && (Math.abs(dxRed)>minDistance || Math.abs(dyRed)>minDistance);
   }
   const obs = document.createElement('div');
   obs.classList.add('obstacle');
-  obs.style.left = x + 'px';
-  obs.style.top = y + 'px';
+  obs.style.left = x+'px';
+  obs.style.top = y+'px';
   gameArea.appendChild(obs);
   obstacles.push(obs);
 }
 
-// Crear varios obstáculos
-const obstacleCount = 8;
+// Crear obstáculos iniciales
 for(let i=0;i<obstacleCount;i++) generateObstacle();
 
 document.addEventListener('keydown', e => keys[e.key]=true);
@@ -131,7 +151,7 @@ document.addEventListener('keyup', e => keys[e.key]=false);
 
 function movePlayer(){
   if(!gamePaused){
-    let moved = false;
+    let moved=false;
 
     // Azul (WASD)
     if(keys['w']) {bluePos.y -= blueSpeed; moved=true;}
@@ -152,25 +172,31 @@ function movePlayer(){
     redPos.y = Math.max(0, Math.min(redPos.y, gameArea.clientHeight - cubeSize));
 
     // Actualizar posiciones
-    blue.style.left = bluePos.x + 'px';
-    blue.style.top = bluePos.y + 'px';
-    red.style.left = redPos.x + 'px';
-    red.style.top = redPos.y + 'px';
+    blue.style.left = bluePos.x+'px';
+    blue.style.top = bluePos.y+'px';
+    red.style.left = redPos.x+'px';
+    red.style.top = redPos.y+'px';
 
-    // Colisión entre jugadores
-    if(isColliding(bluePos, redPos)){ gamePaused=true; gameOverScreen.style.display='flex'; }
+    // Colisión entre jugadores → punto para el jugador que toca
+    if(isColliding(bluePos, redPos)){
+      // Ejemplo: rojo toca azul → rojo gana
+      score.red++;
+      updateScore();
+      checkWinner();
+      gamePaused=true;
+      gameOverScreen.style.display='flex';
+    }
 
     // Colisión con obstáculos
     for(const obs of obstacles){
       const obsPos = {x: parseFloat(obs.style.left), y: parseFloat(obs.style.top)};
       if(isColliding(bluePos, obsPos) || isColliding(redPos, obsPos)){
-        // Retroceder si choca
         if(isColliding(bluePos, obsPos)) {bluePos.x -= keys['a']?-blueSpeed: keys['d']?blueSpeed:0; bluePos.y -= keys['w']?-blueSpeed: keys['s']?blueSpeed:0;}
         if(isColliding(redPos, obsPos)) {redPos.x -= keys['ArrowLeft']?-redSpeed: keys['ArrowRight']?redSpeed:0; redPos.y -= keys['ArrowUp']?-redSpeed: keys['ArrowDown']?redSpeed:0;}
       }
     }
 
-    // Crear partículas si se movió
+    // Partículas si se movió
     if(moved) createParticles();
   }
   requestAnimationFrame(movePlayer);
@@ -184,25 +210,52 @@ function createParticles(){
   [bluePos, redPos].forEach((pos, i)=>{
     const particle = document.createElement('div');
     particle.classList.add('particle');
-    particle.style.left = (pos.x + Math.random()*cubeSize) + 'px';
-    particle.style.top = (pos.y + Math.random()*cubeSize) + 'px';
+    particle.style.left = (pos.x + Math.random()*cubeSize)+'px';
+    particle.style.top = (pos.y + Math.random()*cubeSize)+'px';
     gameArea.appendChild(particle);
     setTimeout(()=>particle.remove(), 300);
   });
+}
+
+function checkWinner(){
+  if(score.blue>=maxScore){
+    gamePaused=true;
+    gameOverScreen.style.display='flex';
+    gameOverScreen.textContent = '';
+    const msg = document.createElement('div');
+    msg.textContent = 'El jugador azul ganó';
+    msg.style.color='blue';
+    gameOverScreen.appendChild(msg);
+    gameOverScreen.appendChild(restartBtn);
+  } else if(score.red>=maxScore){
+    gamePaused=true;
+    gameOverScreen.style.display='flex';
+    gameOverScreen.textContent = '';
+    const msg = document.createElement('div');
+    msg.textContent = 'El jugador rojo ganó';
+    msg.style.color='red';
+    gameOverScreen.appendChild(msg);
+    gameOverScreen.appendChild(restartBtn);
+  }
 }
 
 restartBtn.addEventListener('click', ()=>{
   bluePos={x:50,y:50}; redPos={x:700,y:500};
   keys={}; gamePaused=false;
 
-  // Eliminar obstáculos viejos y generar nuevos
+  // Reiniciar obstáculos
   obstacles.forEach(o=>o.remove());
-  obstacles = [];
+  obstacles=[];
   for(let i=0;i<obstacleCount;i++) generateObstacle();
+
+  // Reiniciar puntaje
+  score.blue=0; score.red=0;
+  updateScore();
 
   gameOverScreen.style.display='none';
 });
 
+updateScore();
 movePlayer();
 </script>
 
